@@ -1,0 +1,491 @@
+{% extends "base.html" %}
+
+{% block title %}{{ reptile.name }} - HerpTracker{% endblock %}
+
+{% block content %}
+<div class="reptile-profile">
+    <!-- Header -->
+    <header class="profile-header">
+        <a href="{{ url_for('main.index') }}" class="back-link">← Back to Dashboard</a>
+        <div class="profile-actions">
+            <a href="{{ url_for('main.edit_reptile', reptile_id=reptile.id) }}" class="btn btn-secondary">Edit</a>
+            <button onclick="deleteReptile({{ reptile.id }})" class="btn btn-danger">Delete</button>
+        </div>
+    </header>
+
+    <!-- Profile Info -->
+    <div class="profile-info">
+        <div class="profile-image">
+            {% if reptile.image_path %}
+            <img src="{{ url_for('static', filename='uploads/' + reptile.image_path) }}" alt="{{ reptile.name }}">
+            {% else %}
+            <div class="placeholder-image large">🦎</div>
+            {% endif %}
+        </div>
+        <div class="profile-details">
+            <h1>{{ reptile.name }}</h1>
+            <p class="species">
+                {{ reptile.species }}
+                {% if reptile.gender and reptile.gender != 'Unknown' %}
+                <span class="gender-badge" style="font-size: 0.8em; opacity: 0.8; margin-left: 5px;">
+                    {% if reptile.gender == 'Male' %}♂ Male{% elif reptile.gender == 'Female' %}♀ Female{% else %}{{
+                    reptile.gender }}{% endif %}
+                </span>
+                {% endif %}
+            </p>
+            {% if reptile.mutation %}
+            <span class="mutation-badge">{{ reptile.mutation }}</span>
+            {% endif %}
+            {% if reptile.date_of_birth %}
+            <p class="dob">Born: {{ reptile.date_of_birth.strftime('%B %d, %Y') }}
+                {% if reptile.age_days() %}
+                <span class="age">({{ (reptile.age_days() / 365)|round(1) }} years old)</span>
+                {% endif %}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div
+            class="stat-card {% if reptile.days_since_last_feeding() is not none and reptile.days_since_last_feeding() > 7 %}warning{% endif %}">
+            <div class="stat-header">
+                <span class="stat-icon">🍽️</span>
+                <span class="stat-label">Last Feeding</span>
+            </div>
+            <div class="stat-value">
+                {% if reptile.days_since_last_feeding() is not none %}
+                {{ reptile.days_since_last_feeding() }} days ago
+                {% else %}
+                Never recorded
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-icon">🐍</span>
+                <span class="stat-label">Last Shed</span>
+            </div>
+            <div class="stat-value">
+                {% if reptile.days_since_last_shedding() is not none %}
+                {{ reptile.days_since_last_shedding() }} days ago
+                {% else %}
+                Never recorded
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-icon">💩</span>
+                <span class="stat-label">Last Defecation</span>
+            </div>
+            <div class="stat-value">
+                {% if reptile.days_since_last_defecation() is not none %}
+                {{ reptile.days_since_last_defecation() }} days ago
+                {% else %}
+                Never recorded
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-icon">🧹</span>
+                <span class="stat-label">Last Full Clean</span>
+            </div>
+            <div class="stat-value">
+                {% if reptile.days_since_last_full_clean() is not none %}
+                {{ reptile.days_since_last_full_clean() }} days ago
+                {% else %}
+                Never recorded
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-icon">📏</span>
+                <span class="stat-label">Latest Measurement</span>
+            </div>
+            <div class="stat-value">
+                {% set latest = reptile.latest_measurement() %}
+                {% if latest %}
+                {% if latest.length_cm %}{{ latest.length_cm }} cm{% endif %}
+                {% if latest.length_cm and latest.weight_g %} / {% endif %}
+                {% if latest.weight_g %}{{ latest.weight_g }} g{% endif %}
+                {% else %}
+                Never recorded
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Records Section -->
+    <section class="add-records">
+        <h2>Add New Record</h2>
+        <div class="record-forms">
+            <!-- Feeding Form -->
+            <div class="record-form-card">
+                <h3>🍽️ Feeding</h3>
+                <form id="feeding-form" onsubmit="addRecord(event, 'feeding', {{ reptile.id }})">
+                    <div class="form-group">
+                        <label for="feeding-date">Date & Time</label>
+                        <input type="datetime-local" id="feeding-date" name="recorded_at">
+                    </div>
+                    <div class="form-group">
+                        <label for="food-type">Food Type</label>
+                        <input type="text" id="food-type" name="food_type" placeholder="e.g., Adult mouse">
+                    </div>
+                    <div class="form-group">
+                        <label for="feeding-notes">Notes</label>
+                        <textarea id="feeding-notes" name="notes" rows="2" placeholder="Optional notes..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Add Feeding</button>
+                </form>
+            </div>
+
+            <!-- Shedding Form -->
+            <div class="record-form-card">
+                <h3>🐍 Shedding</h3>
+                <form id="shedding-form" onsubmit="addRecord(event, 'shedding', {{ reptile.id }})">
+                    <div class="form-group">
+                        <label for="shedding-date">Date & Time</label>
+                        <input type="datetime-local" id="shedding-date" name="recorded_at">
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="complete" checked>
+                            Complete shed
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="shedding-notes">Notes</label>
+                        <textarea id="shedding-notes" name="notes" rows="2" placeholder="Optional notes..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Add Shedding</button>
+                </form>
+            </div>
+
+            <!-- Measurement Form -->
+            <div class="record-form-card">
+                <h3>📏 Measurement</h3>
+                <form id="measurement-form" onsubmit="addRecord(event, 'measurement', {{ reptile.id }})">
+                    <div class="form-group">
+                        <label for="measurement-date">Date & Time</label>
+                        <input type="datetime-local" id="measurement-date" name="recorded_at">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="length">Length (cm)</label>
+                            <input type="number" id="length" name="length_cm" step="0.1" placeholder="e.g., 45.5">
+                        </div>
+                        <div class="form-group">
+                            <label for="weight">Weight (g)</label>
+                            <input type="number" id="weight" name="weight_g" step="0.1" placeholder="e.g., 350">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="measurement-notes">Notes</label>
+                        <textarea id="measurement-notes" name="notes" rows="2"
+                            placeholder="Optional notes..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Add Measurement</button>
+                </form>
+            </div>
+
+            <!-- Defecation Form -->
+            <div class="record-form-card">
+                <h3>💩 Defecation</h3>
+                <form id="defecation-form" onsubmit="addRecord(event, 'defecation', {{ reptile.id }})">
+                    <div class="form-group">
+                        <label for="defecation-date">Date & Time</label>
+                        <input type="datetime-local" id="defecation-date" name="recorded_at">
+                    </div>
+                    <div class="form-group">
+                        <label for="defecation-notes">Notes</label>
+                        <textarea id="defecation-notes" name="notes" rows="2"
+                            placeholder="Optional notes..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Add Defecation</button>
+                </form>
+            </div>
+
+            <!-- Breeding Form -->
+            <div class="record-form-card">
+                <h3>🥚 Breeding</h3>
+                <form id="breeding-form" onsubmit="addRecord(event, 'breeding', {{ reptile.id }})">
+                    <div class="form-group">
+                        <label for="breeding-date">Date & Time</label>
+                        <input type="datetime-local" id="breeding-date" name="recorded_at">
+                    </div>
+                    <div class="form-group">
+                        <label for="breeding-notes">Notes</label>
+                        <textarea id="breeding-notes" name="notes" rows="2" placeholder="Optional notes..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Add Breeding</button>
+                </form>
+            </div>
+
+            <!-- Cleaning Form -->
+            <div class="record-form-card">
+                <h3>🧹 Cage Cleaning</h3>
+                <form id="cleaning-form" onsubmit="addRecord(event, 'cleaning', {{ reptile.id }})">
+                    <div class="form-group">
+                        <label for="cleaning-date">Date & Time</label>
+                        <input type="datetime-local" id="cleaning-date" name="recorded_at">
+                    </div>
+                    <div class="form-group">
+                        <label for="cleaning-type">Cleaning Type</label>
+                        <select id="cleaning-type" name="cleaning_type"
+                            style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; margin-top: 0.5rem;">
+                            <option value="spot">Spot Clean</option>
+                            <option value="full">Full Clean</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cleaning-notes">Notes</label>
+                        <textarea id="cleaning-notes" name="notes" rows="2" placeholder="Optional notes..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Add Cleaning</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Records History -->
+    <section class="records-history">
+        <h2>Record History</h2>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('feedings')">Feedings</button>
+            <button class="tab-btn" onclick="showTab('sheddings')">Sheddings</button>
+            <button class="tab-btn" onclick="showTab('measurements')">Measurements</button>
+            <button class="tab-btn" onclick="showTab('defecations')">Defecations</button>
+            <button class="tab-btn" onclick="showTab('cleanings')">Cleanings</button>
+            <button class="tab-btn" onclick="showTab('breedings')">Breedings</button>
+        </div>
+
+        <!-- Feedings Tab -->
+        <div id="feedings-tab" class="tab-content active">
+            <table class="records-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Food Type</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for feeding in reptile.feedings.limit(50).all() %}
+                    <tr>
+                        <td>{{ feeding.recorded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ feeding.food_type or '-' }}</td>
+                        <td>{{ feeding.notes or '-' }}</td>
+                        <td class="actions-cell">
+                            <button class="btn-icon" title="Edit"
+                                onclick="openEditModal('feeding', {{ feeding.id }}, {recorded_at: '{{ feeding.recorded_at.isoformat() }}', food_type: '{{ feeding.food_type|e if feeding.food_type else '' }}', notes: '{{ feeding.notes|e if feeding.notes else '' }}'})">✏️</button>
+                            <button class="btn-icon btn-icon-danger" title="Delete"
+                                onclick="deleteRecord('feeding', {{ feeding.id }})">🗑️</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="empty-row">No feeding records yet</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sheddings Tab -->
+        <div id="sheddings-tab" class="tab-content">
+            <table class="records-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Complete</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for shedding in reptile.sheddings.limit(50).all() %}
+                    <tr>
+                        <td>{{ shedding.recorded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ '✓ Yes' if shedding.complete else '✗ Partial' }}</td>
+                        <td>{{ shedding.notes or '-' }}</td>
+                        <td class="actions-cell">
+                            <button class="btn-icon" title="Edit"
+                                onclick="openEditModal('shedding', {{ shedding.id }}, {recorded_at: '{{ shedding.recorded_at.isoformat() }}', complete: {{ 'true' if shedding.complete else 'false' }}, notes: '{{ shedding.notes|e if shedding.notes else '' }}'})">✏️</button>
+                            <button class="btn-icon btn-icon-danger" title="Delete"
+                                onclick="deleteRecord('shedding', {{ shedding.id }})">🗑️</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="empty-row">No shedding records yet</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Measurements Tab -->
+        <div id="measurements-tab" class="tab-content">
+            <table class="records-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Length (cm)</th>
+                        <th>Weight (g)</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for measurement in reptile.measurements.limit(50).all() %}
+                    <tr>
+                        <td>{{ measurement.recorded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ measurement.length_cm or '-' }}</td>
+                        <td>{{ measurement.weight_g or '-' }}</td>
+                        <td>{{ measurement.notes or '-' }}</td>
+                        <td class="actions-cell">
+                            <button class="btn-icon" title="Edit"
+                                onclick="openEditModal('measurement', {{ measurement.id }}, {recorded_at: '{{ measurement.recorded_at.isoformat() }}', length_cm: {{ measurement.length_cm or 'null' }}, weight_g: {{ measurement.weight_g or 'null' }}, notes: '{{ measurement.notes|e if measurement.notes else '' }}'})">✏️</button>
+                            <button class="btn-icon btn-icon-danger" title="Delete"
+                                onclick="deleteRecord('measurement', {{ measurement.id }})">🗑️</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="empty-row">No measurement records yet</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Defecations Tab -->
+        <div id="defecations-tab" class="tab-content">
+            <table class="records-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for defecation in reptile.defecations.limit(50).all() %}
+                    <tr>
+                        <td>{{ defecation.recorded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ defecation.notes or '-' }}</td>
+                        <td class="actions-cell">
+                            <button class="btn-icon" title="Edit"
+                                onclick="openEditModal('defecation', {{ defecation.id }}, {recorded_at: '{{ defecation.recorded_at.isoformat() }}', notes: '{{ defecation.notes|e if defecation.notes else '' }}'})">✏️</button>
+                            <button class="btn-icon btn-icon-danger" title="Delete"
+                                onclick="deleteRecord('defecation', {{ defecation.id }})">🗑️</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="empty-row">No defecation records yet</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Cleanings Tab -->
+        <div id="cleanings-tab" class="tab-content">
+            <table class="records-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cleaning in reptile.cleanings.limit(50).all() %}
+                    <tr>
+                        <td>{{ cleaning.recorded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if cleaning.cleaning_type == 'full' %}
+                            <span class="badge badge-primary">Full Clean</span>
+                            {% else %}
+                            <span class="badge badge-secondary">Spot Clean</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ cleaning.notes or '-' }}</td>
+                        <td class="actions-cell">
+                            <button class="btn-icon" title="Edit"
+                                onclick="openEditModal('cleaning', {{ cleaning.id }}, {recorded_at: '{{ cleaning.recorded_at.isoformat() }}', cleaning_type: '{{ cleaning.cleaning_type }}', notes: '{{ cleaning.notes|e if cleaning.notes else '' }}'})">✏️</button>
+                            <button class="btn-icon btn-icon-danger" title="Delete"
+                                onclick="deleteRecord('cleaning', {{ cleaning.id }})">🗑️</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="empty-row">No cleaning records yet</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Breedings Tab -->
+        <div id="breedings-tab" class="tab-content">
+            <table class="records-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for breeding in reptile.breedings.limit(50).all() %}
+                    <tr>
+                        <td>{{ breeding.recorded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ breeding.notes or '-' }}</td>
+                        <td class="actions-cell">
+                            <button class="btn-icon" title="Edit"
+                                onclick="openEditModal('breeding', {{ breeding.id }}, {recorded_at: '{{ breeding.recorded_at.isoformat() }}', notes: '{{ breeding.notes|e if breeding.notes else '' }}'})">✏️</button>
+                            <button class="btn-icon btn-icon-danger" title="Delete"
+                                onclick="deleteRecord('breeding', {{ breeding.id }})">🗑️</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="empty-row">No breeding records yet</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<!-- Edit Modal -->
+<div id="edit-modal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="edit-modal-title">Edit Record</h3>
+            <button class="modal-close" onclick="closeEditModal()">&times;</button>
+        </div>
+        <form id="edit-record-form" onsubmit="saveRecordEdit(event)">
+            <div id="edit-fields-container"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

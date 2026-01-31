@@ -1,0 +1,29 @@
+# HerpTracker - Docker Compose Configuration
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: herptracker
+    ports:
+      - "8080:80"
+    volumes:
+      # Persist database
+      - herptracker-data:/var/www/herptracker/instance
+      # Persist uploaded images
+      - herptracker-uploads:/var/www/herptracker/app/static/uploads
+    restart: unless-stopped
+    environment:
+      - SECRET_KEY=change-this-in-production-to-a-random-secret
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  herptracker-data:
+    name: herptracker-data
+  herptracker-uploads:
+    name: herptracker-uploads

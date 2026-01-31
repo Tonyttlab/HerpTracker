@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="HerpTracker - Track your reptile's health, feeding, shedding, and growth">
+    <title>{% block title %}HerpTracker{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('main.index') }}" class="nav-brand">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="HerpTracker Logo" class="brand-logo">
+                <span class="brand-text">HerpTracker</span>
+            </a>
+            <a href="{{ url_for('main.index') }}" class="nav-link">Dashboard</a>
+            <a href="{{ url_for('main.export_data') }}" class="nav-link">Export Data</a>
+            <a href="{{ url_for('main.new_reptile') }}" class="nav-link">+ Add Reptile</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 HerpTracker. Keep your reptiles healthy!</p>
+        </div>
+    </footer>
+
+    <div id="toast-container"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

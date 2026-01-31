@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}{% if mode == 'edit' %}Edit {{ reptile.name }}{% else %}Add New Reptile{% endif %} - HerpTracker{%
+endblock %}
+
+{% block content %}
+<div class="form-page">
+    <header class="page-header">
+        <a href="{% if mode == 'edit' %}{{ url_for('main.reptile_detail', reptile_id=reptile.id) }}{% else %}{{ url_for('main.index') }}{% endif %}"
+            class="back-link">← Back</a>
+        <h1>{% if mode == 'edit' %}Edit {{ reptile.name }}{% else %}Add New Reptile{% endif %}</h1>
+    </header>
+
+    <form id="reptile-form" class="reptile-form" data-mode="{{ mode }}"
+        data-reptile-id="{{ reptile.id if reptile else '' }}" onsubmit="saveReptile(event)">
+
+        <div class="form-card">
+            <!-- Image Upload -->
+            <div class="image-upload-section">
+                <div class="image-preview" id="image-preview">
+                    {% if reptile and reptile.image_path %}
+                    <img src="{{ url_for('static', filename='uploads/' + reptile.image_path) }}"
+                        alt="{{ reptile.name }}" id="preview-img">
+                    {% else %}
+                    <div class="placeholder-image" id="placeholder-icon">🦎</div>
+                    {% endif %}
+                </div>
+                <div class="image-upload-controls">
+                    <label for="image" class="btn btn-secondary">
+                        <span>📷</span> Choose Photo
+                    </label>
+                    <input type="file" id="image" name="image" accept="image/*" onchange="previewImage(this)">
+                    <p class="upload-hint">JPG, PNG, GIF or WebP. Max 16MB.</p>
+                </div>
+            </div>
+
+            <!-- Basic Info -->
+            <div class="form-section">
+                <h3>Basic Information</h3>
+
+                <div class="form-group">
+                    <label for="name">Name <span class="required">*</span></label>
+                    <input type="text" id="name" name="name" required value="{{ reptile.name if reptile else '' }}"
+                        placeholder="e.g., Monty">
+                </div>
+
+                <div class="form-group">
+                    <label for="species">Species <span class="required">*</span></label>
+                    <input type="text" id="species" name="species" required
+                        value="{{ reptile.species if reptile else '' }}" placeholder="e.g., Ball Python">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="mutation">Mutation / Morph</label>
+                        <input type="text" id="mutation" name="mutation"
+                            value="{{ reptile.mutation if reptile else '' }}" placeholder="e.g., Albino, Piebald">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender"
+                            style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;">
+                            <option value="Unknown" {% if not reptile or reptile.gender=='Unknown' %}selected{% endif
+                                %}>Unknown</option>
+                            <option value="Male" {% if reptile and reptile.gender=='Male' %}selected{% endif %}>Male
+                            </option>
+                            <option value="Female" {% if reptile and reptile.gender=='Female' %}selected{% endif %}>
+                                Female</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date_of_birth">Date of Birth</label>
+                        <input type="date" id="date_of_birth" name="date_of_birth"
+                            value="{{ reptile.date_of_birth.isoformat() if reptile and reptile.date_of_birth else '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="form-actions">
+                <a href="{% if mode == 'edit' %}{{ url_for('main.reptile_detail', reptile_id=reptile.id) }}{% else %}{{ url_for('main.index') }}{% endif %}"
+                    class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary btn-large">
+                    {% if mode == 'edit' %}Save Changes{% else %}Add Reptile{% endif %}
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

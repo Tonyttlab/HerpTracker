@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - HerpTracker{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <h1>Your Reptiles</h1>
+    <p class="subtitle">Track feeding, shedding, growth and health records</p>
+</header>
+
+{% if reptiles %}
+<div class="reptile-grid">
+    {% for reptile in reptiles %}
+    <a href="{{ url_for('main.reptile_detail', reptile_id=reptile.id) }}" class="reptile-card">
+        <div class="card-image">
+            {% if reptile.image_path %}
+            <img src="{{ url_for('static', filename='uploads/' + reptile.image_path) }}" alt="{{ reptile.name }}">
+            {% else %}
+            <div class="placeholder-image">🦎</div>
+            {% endif %}
+        </div>
+        <div class="card-content">
+            <h3 class="card-title">{{ reptile.name }}</h3>
+            <p class="card-species">{{ reptile.species }}</p>
+            {% if reptile.mutation %}
+            <span class="card-mutation">{{ reptile.mutation }}</span>
+            {% endif %}
+
+            <div class="card-stats">
+                <div
+                    class="stat {% if reptile.days_since_last_feeding() is not none and reptile.days_since_last_feeding() > 7 %}stat-warning{% endif %}">
+                    <span class="stat-icon">🍽️</span>
+                    <span class="stat-value">
+                        {% if reptile.days_since_last_feeding() is not none %}
+                        {{ reptile.days_since_last_feeding() }}d
+                        {% else %}
+                        Never
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="stat">
+                    <span class="stat-icon">🐍</span>
+                    <span class="stat-value">
+                        {% if reptile.days_since_last_shedding() is not none %}
+                        {{ reptile.days_since_last_shedding() }}d
+                        {% else %}
+                        Never
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="stat">
+                    <span class="stat-icon">💩</span>
+                    <span class="stat-value">
+                        {% if reptile.days_since_last_defecation() is not none %}
+                        {{ reptile.days_since_last_defecation() }}d
+                        {% else %}
+                        Never
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">🦎</div>
+    <h2>No reptiles yet</h2>
+    <p>Start by adding your first reptile to track</p>
+    <a href="{{ url_for('main.new_reptile') }}" class="btn btn-secondary btn-large">+ Add Your First Reptile</a>
+</div>
+{% endif %}
+{% endblock %}
