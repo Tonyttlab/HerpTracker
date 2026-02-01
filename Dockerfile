@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     apache2 \
     apache2-dev \
     libapache2-mod-wsgi-py3 \
+    curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
