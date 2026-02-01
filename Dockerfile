@@ -32,6 +32,7 @@ COPY apache.conf /etc/apache2/sites-available/000-default.conf
 # Enable required Apache modules
 RUN a2enmod wsgi
 RUN a2enmod rewrite
+RUN a2enmod headers
 
 # Expose port 80
 EXPOSE 80
