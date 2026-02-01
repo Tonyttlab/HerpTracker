@@ -1,21 +1,21 @@
 # HerpTracker Dockerfile - Python Flask with Apache mod_wsgi
-FROM python:3.11-slim
+# Using Debian base to ensure Python and mod_wsgi compatibility
+FROM debian:bookworm-slim
 
-# Install Apache and mod_wsgi
+# Install Apache, Python, and mod_wsgi (all from Debian repos for compatibility)
 RUN apt-get update && apt-get install -y \
     apache2 \
-    apache2-dev \
     libapache2-mod-wsgi-py3 \
+    python3 \
+    python3-pip \
+    python3-flask \
+    python3-flask-sqlalchemy \
     curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /var/www/herptracker
-
-# Copy requirements first for caching
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
@@ -26,6 +26,7 @@ RUN mkdir -p instance app/static/uploads
 # Set permissions for www-data user
 RUN chown -R www-data:www-data /var/www/herptracker
 RUN chmod -R 755 /var/www/herptracker
+RUN chmod -R 775 instance app/static/uploads
 
 # Copy Apache configuration
 COPY apache.conf /etc/apache2/sites-available/000-default.conf
